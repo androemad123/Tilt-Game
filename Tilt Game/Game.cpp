@@ -172,7 +172,6 @@ public:
                 }
             }
         }
-        gridnew = grid;
 
     }
     void drawEnv(RenderWindow& window) {
