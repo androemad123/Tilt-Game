@@ -22,6 +22,7 @@ int main()
     RenderWindow window(VideoMode(DeskTop_D.width / 1.5, DeskTop_D.height / 1.5), "SFML works!");
     const int numFiles = 6;
     string filename = "C:/Users/user/source/repos/reading_TiltGame/Sample Tests/case2.txt";
+    string fileoutPut = "C:/Users/user/Desktop/Tilt_Game/TestCases/inputToOutPut.txt";
     Game game(filename);
     MainMenu mainmenu(window.getSize().x, window.getSize().y);
     while (window.isOpen())
@@ -63,8 +64,9 @@ int main()
                                     Play.close();
                                 }
                                 game.Move(Play, Pevent);
-                                game.readTextures();
                                 game.printGameInfo();
+                                game.writeToFile(fileoutPut);
+                                game.readFromFileToNewGrid(fileoutPut);
 
                             }
                             Play.clear();

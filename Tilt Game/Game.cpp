@@ -172,7 +172,6 @@ public:
                 }
             }
         }
-        gridnew = grid;
 
     }
     void drawEnv(RenderWindow& window) {
@@ -213,6 +212,61 @@ public:
         }
         window.draw(shapeSelector);
     }
+    void writeToFile(const std::string& filename) const {
+        std::ofstream outputFile(filename, std::ofstream::trunc); // Open the file in truncation mode
+
+        if (!outputFile) {
+            std::cerr << "Unable to open file for writing: " << filename << std::endl;
+            exit(1);
+        }
+
+        outputFile << gridSize << std::endl;
+
+        for (const auto& row : grid) {
+            for (const auto& cell : row) {
+                outputFile << cell;
+            }
+            outputFile << std::endl;
+        }
+
+        outputFile << x << " " << y << std::endl;
+
+        outputFile.close();
+    }
+
+    void readFromFileToNewGrid(const std::string& filename) {
+        std::ifstream inputFile(filename);
+
+        if (!inputFile) {
+            std::cerr << "Unable to open file: " << filename << std::endl;
+            exit(1);
+        }
+
+        inputFile >> gridSize;
+        gridnew.resize(gridSize, std::vector<char>(gridSize));
+
+        char tempChar;
+        std::string line;
+
+        for (int i = 0; i < gridSize; ++i) {
+            inputFile >> std::ws;
+            std::getline(inputFile, line);
+            std::istringstream iss(line);
+            for (int j = 0; j < gridSize; ++j) {
+                iss >> tempChar;
+                if (tempChar == ',') {
+                    --j;
+                }
+                else {
+                    gridnew[i][j] = tempChar;
+                }
+            }
+        }
+
+        inputFile >> x >> y;
+        inputFile.close();
+    }
+
 
 private:
     const float ACCELERATION = 10.0f; 
