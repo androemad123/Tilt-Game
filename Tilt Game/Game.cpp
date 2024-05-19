@@ -1,5 +1,7 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -15,6 +17,9 @@ public:
         readFromFile(filename);
         readTextures();
         createEnv();
+        setupAudio();
+        setupRestartButton();
+        setupText();
     }
 
     void printGameInfo() const {
@@ -26,7 +31,7 @@ public:
             }
             std::cout << std::endl;
         }
-        std::cout << "Coordinates: (" << x  << ")" << std::endl;
+        std::cout << "Coordinates: (" << x<<", " << y << ")" << std::endl;
     }
 
     void createEnv() {
@@ -39,26 +44,71 @@ public:
         shapeSelector.setOutlineColor(Color::Green);
 
         gameTile.resize(gridSize, std::vector<RectangleShape>(gridSize));
-
+        gameTile[0][0].setPosition(Vector2f(100,100));
         for (int x = 0; x < gridSize; x++) {
             for (int y = 0; y < gridSize; y++) {
                 gameTile[x][y].setSize(Vector2f(gridSizef, gridSizef));
               //  gameTile[x][y].setFillColor(Color::White);
                 gameTile[x][y].setOutlineThickness(1.f);
                 gameTile[x][y].setOutlineColor(Color::Black);
-                gameTile[x][y].setPosition(x * gridSizef, y * gridSizef);
+                gameTile[x][y].setPosition(x * gridSizef+100, y * gridSizef+100);
             }
         }
     }
+   
+    void handleMouseClick(RenderWindow& window, Event& event) {
+        Vector2i mousePos = Mouse::getPosition(window);
+        if (restartButton.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+            restartButton.setScale(2,3.33);
+            //restartButton.rotate(90.f);
+            if (event.type == Event::MouseButtonPressed) {
+                if (event.mouseButton.button == Mouse::Left) {
+                    restartGame();
+                }
+            }
+        }
+        else
+        {
+            restartButton.setScale(1.7, 2.833);
+
+        }
+    }
+    void setupText() {
+        winText.setFont(font);
+        winText.setCharacterSize(90);
+        winText.setFillColor(Color::White);
+        winText.setPosition(800, 300);
+        movecountTxt.setFont(font);
+        movecountTxt.setCharacterSize(50);
+        movecountTxt.setFillColor(Color::White);
+        movecountTxt.setPosition(700, 70); // Position the text below the restart button
+        moveTxt.setFont(font);
+        moveTxt.setCharacterSize(40);
+        moveTxt.setFillColor(Color::White);
+        moveTxt.setPosition(700, 120); // Position the text below the restart button
+
+        updateMoveText(); // Initialize the move text
+    }
+    void updateMoveText() {
+        movecountTxt.setString("Moves Count : " + std::to_string(movecount));
+        moveTxt.setString(move);
+    }
+    void restartGame() {
+        // Reset the grid and other game state variables
+        move = "";
+        movecount = 0;
+        readFromFile("C:/Users/user/source/repos/reading_TiltGame/Sample Tests/case2.txt");
+        createEnv();
+    }
     void Move(RenderWindow& window, Event& event) {
         if (event.type == Event::KeyPressed) {
-
+            bool moved = false;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) { // Right
+                move = move + "Right \n";
                 for (int row = 0; row < gridSize; row++) { // Iterate through each row
                     int pointToReplace = -1; // Initialize pointToReplace for each row
                     for (int col = gridSize - 1; col >= 0; col--) { // Iterate through each column from right to left
                         if (grid[row][col] == '.') {
-                            gameTile[row][col].setTexture(&textureDot);
 
                             if (pointToReplace == -1) {
                                 pointToReplace = col; // Record this column as the point to replace
@@ -67,11 +117,11 @@ public:
                         else if (grid[row][col] == 'o') {
                             if (pointToReplace != -1) {
                                 grid[row][col] = '.';
-                                gameTile[row][col].setTexture(&textureDot);
                                 grid[row][pointToReplace] = 'o';
-                                gameTile[row][pointToReplace].setTexture(&textureO);
 
                                 pointToReplace--; // Move to the next column to the left
+                                moved = true;
+
                             }
                         }
                         else {
@@ -82,11 +132,11 @@ public:
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) { // Left
+                move = move + "Left \n";
                 for (int row = 0; row < gridSize; row++) { // Iterate through each row
                     int pointToReplace = -1; // Initialize pointToReplace for each row
                     for (int col = 0; col < gridSize; col++) { // Iterate through each column from left to right
                         if (grid[row][col] == '.') {
-                            gameTile[row][col].setTexture(&textureDot);
 
                             if (pointToReplace == -1) {
                                 pointToReplace = col; // Record this column as the point to replace
@@ -95,12 +145,12 @@ public:
                         else if (grid[row][col] == 'o') {
                             if (pointToReplace != -1) {
                                 grid[row][col] = '.';
-                                gameTile[row][col].setTexture(&textureDot);
 
                                 grid[row][pointToReplace] = 'o';
-                                gameTile[row][pointToReplace].setTexture(&textureO);
 
                                 pointToReplace++; // Move to the next column to the right
+                                moved = true;
+
                             }
                         }
                         else {
@@ -111,11 +161,12 @@ public:
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) { // Up
+                move = move + "Up \n";
+
                 for (int col = 0; col < gridSize; col++) { // Iterate through each column
                     int pointToReplace = -1; // Initialize pointToReplace for each column
                     for (int row = 0; row < gridSize; row++) { // Iterate through each row from top to bottom
                         if (grid[row][col] == '.') {
-                            gameTile[row][col].setTexture(&textureDot);
 
                             if (pointToReplace == -1) {
                                 pointToReplace = row; // Record this row as the point to replace
@@ -124,12 +175,12 @@ public:
                         else if (grid[row][col] == 'o') {
                             if (pointToReplace != -1) {
                                 grid[row][col] = '.';
-                                gameTile[row][col].setTexture(&textureDot);
 
                                 grid[pointToReplace][col] = 'o';
-                                gameTile[pointToReplace][col].setTexture(&textureO);
 
                                 pointToReplace++; // Move to the next row down
+                                moved = true;
+
                             }
                         }
                         else {
@@ -140,6 +191,8 @@ public:
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) { // Down
+                move = move + "Down \n";
+
                 for (int col = 0; col < gridSize; col++) { // Iterate through each column
                     int pointToReplace = -1; // Initialize pointToReplace for each column
                     for (int row = gridSize - 1; row >= 0; row--) { // Iterate through each row from bottom to top
@@ -151,12 +204,12 @@ public:
                         else if (grid[row][col] == 'o') {
                             if (pointToReplace != -1) {
                                 grid[row][col] = '.';
-                                gameTile[row][col].setTexture(&textureDot);
 
                                 grid[pointToReplace][col] = 'o';
-                                gameTile[pointToReplace][col].setTexture(&textureO);
 
                                 pointToReplace--; // Move to the next row up
+                                moved = true;
+
                             }
                         }
                         else {
@@ -166,10 +219,10 @@ public:
                 }
             }
 
-            for (int col = 0; col < gridSize; col++) {
-                for (int row = 0; row < gridSize; row++) {
-                    gameTile[col][row].setTexture(nullptr);
-                }
+            if (moved) {
+                movecount++;
+                updateMoveText();
+                moveSound.play();
             }
         }
 
@@ -185,32 +238,38 @@ public:
         }
         shapeSelector.setPosition(mousePosGrid.x * gridSizef, mousePosGrid.y * gridSizef);
 
+        
         for (int col = 0; col < gridSize; col++) {
             for (int row = 0; row < gridSize; row++) {
-                background.setPosition(col * gridSizef, row * gridSizef);
-                window.draw(background);
-            }
-        }
-        for (int col = 0; col < gridSize; col++) {
-            for (int row = 0; row < gridSize; row++) {
-                if (gridnew[row][col] == '#') {
-                    gameTile[col][row].setTexture(&textureHash);
-                }
-                else if (gridnew[row][col] == '.') {
-                    gameTile[col][row].setTexture(&textureDot);
-                }
-                else if (gridnew[row][col] == 'o') {
-                    gameTile[col][row].setTexture(&textureO);
-                }
-                else
+                if (row==y && col ==x)
                 {
-                    gameTile[col][row].setTexture(nullptr);
-
+                    gameTile[col][row].setFillColor(Color::Yellow);
+                    continue;
                 }
+                else if (grid[row][col] == '#') {
+                    gameTile[col][row].setFillColor(Color::Blue);
+                }
+                else if (grid[row][col] == '.') {
+                    gameTile[col][row].setFillColor(Color::Red);
+                }
+                else if (grid[row][col] == 'o') {
+                    gameTile[col][row].setFillColor(Color::Green);
+                }
+                if (grid[col][row]=='o'&&row==x&&col==y)
+                {
+                    winner = "YOU WIN!";
+                    winText.setString(winner);
+                    window.draw(winText);
+                }
+               
                 window.draw(gameTile[col][row]);
             }
         }
         window.draw(shapeSelector);
+        window.draw(restartButton);
+        window.draw(movecountTxt);
+        window.draw(moveTxt);
+
     }
     void writeToFile(const std::string& filename) const {
         std::ofstream outputFile(filename, std::ofstream::trunc); // Open the file in truncation mode
@@ -229,7 +288,7 @@ public:
             outputFile << std::endl;
         }
 
-        outputFile << x << " " << y << std::endl;
+        outputFile << x << " " << std::endl;
 
         outputFile.close();
     }
@@ -263,7 +322,7 @@ public:
             }
         }
 
-        inputFile >> x >> y;
+        inputFile >> x;
         inputFile.close();
     }
 
@@ -282,9 +341,30 @@ private:
     sf::Texture textureHash, textureDot, textureO;
     std::vector<std::vector<char>> grid;
     std::vector<std::vector<char>> gridnew;
+    sf::Music backgroundMusic; // Background music object
+    sf::SoundBuffer moveBuffer; // Buffer for move sound effect
+    sf::Sound moveSound; // Sound object for move sound effect
+    sf::Texture restartButtonTexture; // Texture for the restart button
+    sf::RectangleShape restartButton;
+    string cord,move,winner;
+    int x,y;
+    sf::Font font; // Font for the text
+    sf::Text movecountTxt,winText; // Text for displaying moves
+    sf::Text moveTxt; // Text for displaying move
+    int movecount = 0; // Counter for moves
 
-    string x, y;
+    void setCoordinatesFromString(const std::string& coordString) {
+        std::string coords = coordString;
+        coords.erase(std::remove(coords.begin(), coords.end(), ' '), coords.end());
+        std::stringstream ss(coords);
+        std::string temp;
 
+        std::getline(ss, temp, ',');
+        x = std::stoi(temp);
+
+        std::getline(ss, temp, ',');
+        y = std::stoi(temp);
+    }
     void readFromFile(const std::string& filename) {
         std::ifstream inputFile(filename);
 
@@ -314,10 +394,25 @@ private:
             }
         }
 
-        inputFile >> x;
+        inputFile >> cord;
+        setCoordinatesFromString(cord);
         inputFile.close();
     }
+    void setupAudio() {
+        if (!backgroundMusic.openFromFile("C:/Users/user/Desktop/Tilt_Game/Music/MainThem.mp3")) {
+            std::cerr << "Unable to load audio file" << std::endl;
+            exit(1);
+        }
+        backgroundMusic.setLoop(true);  // Set the music to loop
+        backgroundMusic.play();         // Start playing the music
+        backgroundMusic.setVolume(50.f);
 
+        if (!moveBuffer.loadFromFile("C:/Users/user/Desktop/Tilt_Game/Music/Collision.mp3")) {
+            std::cerr << "Unable to load move sound!" << std::endl;
+            exit(1);
+        }
+        moveSound.setBuffer(moveBuffer);
+    }
     void readTextures() {
         if (!textureHash.loadFromFile("C:/Users/user/Desktop/Tilt_Game/Sprites/Fire.png")) {
             std::cerr << "Unable to load texture: Fire.png" << std::endl;
@@ -330,7 +425,21 @@ private:
         if (!textureO.loadFromFile("C:/Users/user/Desktop/Tilt_Game/Sprites/circle.png")) {
             std::cerr << "Unable to load texture: circle.png" << std::endl;
             exit(1);
-        }       
+        }
+        if (!restartButtonTexture.loadFromFile("C:/Users/user/Desktop/Tilt_Game/Sprites/restart.png")) {
+            std::cerr << "Unable to load restart button texture!" << std::endl;
+            exit(1);
+        }
+        if (!font.loadFromFile("C:/Users/user/Desktop/Tilt_Game/Fonts/Jacquard12-Regular.ttf")) {
+            std::cerr << "Unable to load font!" << std::endl;
+            exit(1);
+        }
+    }
+    void setupRestartButton() {
+
+        restartButton.setSize(Vector2f(100, 50)); // Set the size of the restart button
+        restartButton.setTexture(&restartButtonTexture);
+        restartButton.setPosition(1000, 100); // Position the button at the top-left corner
     }
 };
 

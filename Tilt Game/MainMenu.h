@@ -25,6 +25,8 @@ private:
 	int MainMenuSelected;
 	Font font_menu;
 	Text MainMenuTxt[Max_main_menu];
+	Texture BackGroundTex;
+	Sprite BackGroudnSpr;
 
 
 };

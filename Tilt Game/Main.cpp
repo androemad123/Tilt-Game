@@ -65,9 +65,8 @@ int main()
                                 }
                                 game.Move(Play, Pevent);
                                 game.printGameInfo();
-                                game.writeToFile(fileoutPut);
-                                game.readFromFileToNewGrid(fileoutPut);
-
+                                game.handleMouseClick(window, Pevent);
+                               
                             }
                             Play.clear();
                             game.drawEnv(Play);
