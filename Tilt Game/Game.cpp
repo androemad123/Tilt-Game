@@ -20,6 +20,7 @@ public:
         setupAudio();
         setupRestartButton();
         setupText();
+
     }
 
     void printGameInfo() const {
@@ -33,29 +34,21 @@ public:
         }
         std::cout << "Coordinates: (" << x<<", " << y << ")" << std::endl;
     }
-
     void createEnv() {
         background.setSize(Vector2f(gridSizef, gridSizef));
         background.setTexture(&textureDot);
 
-        shapeSelector.setSize(Vector2f(gridSizef, gridSizef));
-        shapeSelector.setFillColor(Color::Transparent);
-        shapeSelector.setOutlineThickness(3.f / 2);
-        shapeSelector.setOutlineColor(Color::Green);
-
         gameTile.resize(gridSize, std::vector<RectangleShape>(gridSize));
-        gameTile[0][0].setPosition(Vector2f(100,100));
         for (int x = 0; x < gridSize; x++) {
             for (int y = 0; y < gridSize; y++) {
                 gameTile[x][y].setSize(Vector2f(gridSizef, gridSizef));
               //  gameTile[x][y].setFillColor(Color::White);
                 gameTile[x][y].setOutlineThickness(1.f);
                 gameTile[x][y].setOutlineColor(Color::Black);
-                gameTile[x][y].setPosition(x * gridSizef+100, y * gridSizef+100);
+                gameTile[x][y].setPosition(x * gridSizef+150, y * gridSizef+150);
             }
         }
     }
-   
     void handleMouseClick(RenderWindow& window, Event& event) {
         Vector2i mousePos = Mouse::getPosition(window);
         if (restartButton.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
@@ -103,6 +96,7 @@ public:
     void Move(RenderWindow& window, Event& event) {
         if (event.type == Event::KeyPressed) {
             bool moved = false;
+            startCameraShake(0.2f, window);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) { // Right
                 move = move + "Right \n";
                 for (int row = 0; row < gridSize; row++) { // Iterate through each row
@@ -133,6 +127,8 @@ public:
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) { // Left
                 move = move + "Left \n";
+                startCameraShake(0.2f, window);
+
                 for (int row = 0; row < gridSize; row++) { // Iterate through each row
                     int pointToReplace = -1; // Initialize pointToReplace for each row
                     for (int col = 0; col < gridSize; col++) { // Iterate through each column from left to right
@@ -162,6 +158,7 @@ public:
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) { // Up
                 move = move + "Up \n";
+                startCameraShake(0.2f, window);
 
                 for (int col = 0; col < gridSize; col++) { // Iterate through each column
                     int pointToReplace = -1; // Initialize pointToReplace for each column
@@ -192,6 +189,7 @@ public:
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) { // Down
                 move = move + "Down \n";
+                startCameraShake(0.2f, window);
 
                 for (int col = 0; col < gridSize; col++) { // Iterate through each column
                     int pointToReplace = -1; // Initialize pointToReplace for each column
@@ -228,17 +226,7 @@ public:
 
     }
     void drawEnv(RenderWindow& window) {
-        mousePovWindows = Mouse::getPosition(window);
-        mousePovView = window.mapPixelToCoords(mousePovWindows);
-        if (mousePovView.x >= 0.f) {
-            mousePosGrid.x = static_cast<unsigned>(mousePovView.x / gridSizef);
-        }
-        if (mousePovView.y >= 0.f) {
-            mousePosGrid.y = static_cast<unsigned>(mousePovView.y / gridSizef);
-        }
-        shapeSelector.setPosition(mousePosGrid.x * gridSizef, mousePosGrid.y * gridSizef);
-
-        
+      
         for (int col = 0; col < gridSize; col++) {
             for (int row = 0; row < gridSize; row++) {
                 if (row==y && col ==x)
@@ -265,10 +253,10 @@ public:
                 window.draw(gameTile[col][row]);
             }
         }
-        window.draw(shapeSelector);
         window.draw(restartButton);
         window.draw(movecountTxt);
         window.draw(moveTxt);
+        updateCameraShake(window);
 
     }
     void writeToFile(const std::string& filename) const {
@@ -292,7 +280,6 @@ public:
 
         outputFile.close();
     }
-
     void readFromFileToNewGrid(const std::string& filename) {
         std::ifstream inputFile(filename);
 
@@ -325,33 +312,49 @@ public:
         inputFile >> x;
         inputFile.close();
     }
+    void startCameraShake(float duration, RenderWindow& window) {
+        isShaking = true;
+        shakeDuration = duration;
+        shakeClock.restart();
+        originalView = window.getView();
+    }
+
+    void updateCameraShake(RenderWindow& window) {
+        if (isShaking) {
+            if (shakeClock.getElapsedTime().asSeconds() < shakeDuration) {
+                float offsetX = ((rand() % 100) / 50.f - 1) * shakeMagnitude;
+                float offsetY = ((rand() % 100) / 50.f - 1) * shakeMagnitude;
+                View shakeView = originalView;
+                shakeView.move(offsetX, offsetY);
+                window.setView(shakeView);
+            }
+            else {
+                isShaking = false;
+                window.setView(originalView); // Reset the view to its original state
+            }
+        }
+    }
 
 
 private:
-    const float ACCELERATION = 10.0f; 
-    const float MAX_VELOCITY = 200.0f;
-    RectangleShape background, shapeSelector;
-    int gridSize;
-    Vector2f velocity;
+    
+    RectangleShape background, restartButton;
     vector<vector<RectangleShape>> gameTile;
-    Vector2f mousePovView;
-    Vector2i mousePovWindows;
-    Vector2u mousePosGrid;
-    float gridSizef = 70;
-    sf::Texture textureHash, textureDot, textureO;
+  
+    float gridSizef = 70, shakeDuration = 0.f, shakeMagnitude = 5.f;
+    sf::Texture textureHash, textureDot, textureO, restartButtonTexture;
     std::vector<std::vector<char>> grid;
     std::vector<std::vector<char>> gridnew;
     sf::Music backgroundMusic; // Background music object
     sf::SoundBuffer moveBuffer; // Buffer for move sound effect
     sf::Sound moveSound; // Sound object for move sound effect
-    sf::Texture restartButtonTexture; // Texture for the restart button
-    sf::RectangleShape restartButton;
     string cord,move,winner;
-    int x,y;
+    int x,y, movecount = 0, gridSize;
     sf::Font font; // Font for the text
-    sf::Text movecountTxt,winText; // Text for displaying moves
-    sf::Text moveTxt; // Text for displaying move
-    int movecount = 0; // Counter for moves
+    sf::Text movecountTxt,winText, moveTxt; // Text for displaying moves
+    bool isShaking = false;
+    Clock shakeClock;
+    View originalView;
 
     void setCoordinatesFromString(const std::string& coordString) {
         std::string coords = coordString;
